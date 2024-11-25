@@ -1,9 +1,54 @@
 import { useLocation, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 
 function RecipeDetails() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { tekk, image, page, relatedRecipes } = location.state || {};  // relatedRecipes added
+  const { tekk, image, page } = location.state || {};  // relatedRecipes is no longer passed here
+
+  const [recommendedRecipes, setRecommendedRecipes] = useState({});
+  const [loadingRecommendations, setLoadingRecommendations] = useState(true);
+
+  const fetchRecommendations = async (currentRecipeId) => {
+    try {
+      setLoadingRecommendations(true);
+      const response = await fetch(`http://127.0.0.1:8000/api/tekks/recommendations/${currentRecipeId}`);
+      
+      // Check if the response is OK
+      if (!response.ok) {
+        throw new Error(`Failed to fetch recommendations: ${response.statusText}`);
+      }
+  
+      // Check if the response is JSON
+      const contentType = response.headers.get("Content-Type");
+      if (contentType && contentType.includes("application/json")) {
+        const data = await response.json();
+        setRecommendedRecipes(data);
+        console.log(recommendedRecipes)
+      } else {
+        const textResponse = await response.text();
+        console.error("Unexpected response type:", textResponse);
+        throw new Error("Expected JSON but got non-JSON response.");
+      }
+    } catch (error) {
+      console.error("Failed to fetch recommendations:", error);
+      setRecommendedRecipes([]);
+    } finally {
+      setLoadingRecommendations(false);
+    }
+  };
+
+  useEffect(() => {
+    console.log("Updated recommendations:", recommendedRecipes);
+  }, [recommendedRecipes]);
+  
+  // Fetch recommendations on mount or when recipe changes
+  useEffect(() => {
+    if (tekk?.id) { 
+      fetchRecommendations(tekk.id);
+    }
+  }, [tekk?.id]);  
+  
 
   if (!tekk) {
     return (
@@ -75,9 +120,9 @@ function RecipeDetails() {
         <div className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">Tags</h2>
           <div className="flex space-x-4">
-            <span className="bg-indigo-600 text-white py-2 px-4 rounded-lg">Vegetarian</span>
-            <span className="bg-indigo-600 text-white py-2 px-4 rounded-lg">Quick</span>
-            <span className="bg-indigo-600 text-white py-2 px-4 rounded-lg">Healthy</span>
+            {tekk.tags?.map((tag, index) => (
+              <span key={index} className="bg-indigo-600 text-white py-2 px-4 rounded-lg">{tag}</span>
+            ))}
           </div>
         </div>
 
@@ -118,30 +163,31 @@ function RecipeDetails() {
           </div>
         </div>
 
-        {/* Related Recipes Section */}
+        {/* You May Also Like Section */}
         <div className="mb-8">
-          <h2 className="text-2xl font-semibold mb-4">Related Recipes</h2>
+          <h2 className="text-2xl font-semibold mb-4">You May Also Like</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {relatedRecipes && relatedRecipes.length > 0 ? (
-              relatedRecipes.map((recipe) => (
-                <div key={recipe.id} className="bg-gray-700 p-4 rounded-lg">
-                  <img
-                    src={recipe.image}
-                    alt={recipe.title}
-                    className="w-full h-48 object-cover rounded-lg mb-4"
-                  />
-                  <h3 className="text-xl font-bold text-gray-200">{recipe.title}</h3>
-                  <p className="text-gray-300">{recipe.description}</p>
-                  <a
-                    href={`/recipe/${recipe.id}`}
-                    className="text-indigo-400 hover:text-indigo-600 mt-4 inline-block"
-                  >
-                    View Recipe
-                  </a>
-                </div>
-              ))
+            {loadingRecommendations ? (
+              <p className="text-gray-500">Loading recommendations...</p>
             ) : (
-              <p className="text-sm text-gray-500">No related recipes found</p>
+              recommendedRecipes["recommended_recipes"].length > 0 ? (
+                recommendedRecipes["recommended_recipes"].map((recipe) => (
+                  <div key={recipe.id} className="bg-gray-700 p-4 rounded-lg">
+                    <img
+                      src={recipe.url}
+                      alt={recipe.title}
+                      className="w-full h-48 object-cover rounded-lg mb-4"
+                      onClick={() => {navigate("/recipe-details", { state: { tekk: recipe, image: recipe.url } })
+                      window.scrollTo(0,0)
+                    }}
+                    />
+                    <h3 className="text-xl font-bold text-gray-200">{recipe.title}</h3>
+                    <p className="text-gray-300">{recipe.description}</p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-gray-500">No recommendations available</p>
+              )
             )}
           </div>
         </div>

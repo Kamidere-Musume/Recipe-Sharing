@@ -27,6 +27,11 @@ function App() {
     }
   }, []);
 
+  // Helper function for protected routes
+  const ProtectedRoute = ({ element }) => {
+    return user ? element : <Navigate to="/login" />;
+  };
+
   const loginUser = (userData) => {
     setUser(userData);
     localStorage.setItem("user", JSON.stringify(userData)); // Save user to localStorage
@@ -55,12 +60,12 @@ function App() {
         />
 
         {/* Protected Routes */}
-        <Route path="/home" element={user ? <HomePage /> : <Navigate to="/login" />} />
-        <Route path="/about" element={user ? <AboutPage /> : <Navigate to="/login" />} />
-        <Route path="/contact" element={user ? <ContactPage /> : <Navigate to="/login" />} />
-        <Route path="/submit-recipe" element={user ? <SubmitRecipePage /> : <Navigate to="/login" />} />
-        <Route path="/recipe-details" element={user ? <RecipeDetails /> : <Navigate to="/login" />} />
-        <Route path="/recipes/:page" element={user ? <RecipesPage /> : <Navigate to="/login" />} />
+        <Route path="/home" element={<ProtectedRoute element={<HomePage />} />} />
+        <Route path="/about" element={<ProtectedRoute element={<AboutPage />} />} />
+        <Route path="/contact" element={<ProtectedRoute element={<ContactPage />} />} />
+        <Route path="/submit-recipe" element={<ProtectedRoute element={<SubmitRecipePage />} />} />
+        <Route path="/recipe-details" element={<ProtectedRoute element={<RecipeDetails />} />} />
+        <Route path="/recipes/:page" element={<ProtectedRoute element={<RecipesPage user={user} />} />} />
       </Routes>
     </div>
   );

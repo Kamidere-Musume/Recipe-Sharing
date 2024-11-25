@@ -1,12 +1,19 @@
 from rest_framework.decorators import api_view
-from rest_framework.response import Response
 from pymongo import MongoClient
 from math import ceil
+from django.http import JsonResponse
+from .recommendation import RecipeRecommender
+from rest_framework.response import Response
 
-# Connect to MongoDB
-client = MongoClient('mongodb://localhost:27017')
-db = client['tekks']  # Updated database name
-tekks_collection = db['tekks']  # Collection for recipes
+mongo_uri = "mongodb://localhost:27017"
+db_name = "tekks"
+collection_name = "tekks"
+
+recommender = RecipeRecommender(mongo_uri, db_name, collection_name)
+
+client = MongoClient(mongo_uri)
+db = client[db_name]
+tekks_collection = db[collection_name]
 
 @api_view(['GET'])
 def tekks_list(request):
@@ -45,3 +52,38 @@ def tekks_list(request):
 
     except Exception as e:
         return Response({"error": str(e)}, status=400)
+
+@api_view(['GET'])
+def get_recommendations(request, recipe_id):
+    try:
+        # Load data and preprocess it
+        recommender.load_data()
+        recommender.preprocess_data()
+        
+        # Compute similarity matrix if not already computed
+        if recommender.similarity_matrix is None:
+            recommender.compute_similarity()
+
+        # Get recommendations
+        recommended_recipes = recommender.recommend_recipes(recipe_id)
+
+        if recommended_recipes:
+            # Convert the recommended recipes to a list of dictionaries that can be serialized
+            recommended_recipes_list = [
+                {
+                    "id": str(recipe["_id"]),
+                    "title": recipe.get('title', ''),
+                    "image": recipe.get('image', ''),  # Ensure image is included
+                    "description": recipe.get('description', ''),  # Ensure description is included
+                    "url": recipe.get('url', ''),
+                    "ingredients": recipe.get('ingredients', []),
+                    "instructions": recipe.get('instructions', [])
+                }
+                for recipe in recommended_recipes
+            ]
+            return JsonResponse({'recommended_recipes': recommended_recipes_list}, safe=False)
+        else:
+            return JsonResponse({'error': 'Recipe ID not found or no recommendations available.'}, status=404)
+
+    except Exception as e:
+        return JsonResponse({'error': f'Error processing recommendations: {str(e)}'}, status=500)

@@ -81,6 +81,9 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 
 # MongoDB Configuration with PyMongo
+# settings.py
+
+MONGO_URI = 'mongodb://localhost:27017'
 MONGO_CLIENT = MongoClient('mongodb://localhost:27017/')  # Connection to MongoDB
 MONGO_DB = MONGO_CLIENT['tekks']
 USERS_COLLECTION = MONGO_DB['users'] 

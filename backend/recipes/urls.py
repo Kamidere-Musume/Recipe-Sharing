@@ -1,6 +1,7 @@
 from django.urls import path
-from .views import tekks_list  # Import the tekks_list view
+from .views import tekks_list, get_recommendations
 
 urlpatterns = [
-    path('', tekks_list, name='tekks_list'),  # Empty string means it's mapped to 'api/tekks/'
+    path('', tekks_list, name='tekks_list'),
+    path('recommendations/<str:recipe_id>/', get_recommendations, name='get_recommendations'),
 ]
