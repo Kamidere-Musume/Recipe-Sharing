@@ -26,6 +26,7 @@ function App() {
       }
     }
   }, []);
+  
 
   // Helper function for protected routes
   const ProtectedRoute = ({ element }) => {

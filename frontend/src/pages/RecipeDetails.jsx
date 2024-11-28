@@ -4,27 +4,29 @@ import { useState, useEffect } from "react";
 function RecipeDetails() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { tekk, image, page } = location.state || {};  // relatedRecipes is no longer passed here
-
+  const { tekk, image, page } = location.state || {}; // relatedRecipes is no longer passed here
+  const user = JSON.parse(localStorage.getItem("user"));
   const [recommendedRecipes, setRecommendedRecipes] = useState({});
   const [loadingRecommendations, setLoadingRecommendations] = useState(true);
+
+  const [rating, setRating] = useState(0); // For storing user rating
+  const [newComment, setNewComment] = useState(""); // For user comment input
+  const [comments, setComments] = useState([]); // For storing comments
 
   const fetchRecommendations = async (currentRecipeId) => {
     try {
       setLoadingRecommendations(true);
       const response = await fetch(`http://127.0.0.1:8000/api/tekks/recommendations/${currentRecipeId}`);
       
-      // Check if the response is OK
       if (!response.ok) {
         throw new Error(`Failed to fetch recommendations: ${response.statusText}`);
       }
   
-      // Check if the response is JSON
       const contentType = response.headers.get("Content-Type");
       if (contentType && contentType.includes("application/json")) {
         const data = await response.json();
         setRecommendedRecipes(data);
-        console.log(recommendedRecipes)
+        console.log(recommendedRecipes);
       } else {
         const textResponse = await response.text();
         console.error("Unexpected response type:", textResponse);
@@ -41,15 +43,46 @@ function RecipeDetails() {
   useEffect(() => {
     console.log("Updated recommendations:", recommendedRecipes);
   }, [recommendedRecipes]);
-  
-  // Fetch recommendations on mount or when recipe changes
+
   useEffect(() => {
     if (tekk?.id) { 
       fetchRecommendations(tekk.id);
     }
-  }, [tekk?.id]);  
-  
+  }, [tekk?.id]);
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+
+    try {
+      
+      const response = await fetch(`http://localhost:8000/api/tekks/reviews/${user.user_id}/${tekk.id}/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          rating: rating,
+          comment: newComment,
+        }),
+      });
+
+      const result = await response.json();
+      console.log(result)
+     
+      if (result.success) {
+       comments.push({user: user.username, text: newComment})
+       setNewComment('')
+      } else {
+        setErrorMessage(result.message);
+        setSuccessMessage('');
+      }
+    } catch (error) {
+      console.error('Error submitting rating and comment:', error);
+      setErrorMessage('Something went wrong. Please try again.');
+      setSuccessMessage('');
+    }
+  };
   if (!tekk) {
     return (
       <div className="text-center mt-8">
@@ -68,7 +101,7 @@ function RecipeDetails() {
     <div className="bg-gradient-to-r from-gray-900 via-gray-800 to-black min-h-screen p-6 text-white">
       <button
         className="bg-indigo-600 text-white px-6 py-3 rounded-lg mb-8 hover:bg-indigo-700 transition duration-300 ease-in-out transform hover:scale-105"
-        onClick={() => navigate(`/recipes/${page}`)} // Navigate back to the previous page
+        onClick={() => navigate(`/recipes/${page}`)}
       >
         Back to Recipes
       </button>
@@ -116,16 +149,6 @@ function RecipeDetails() {
           </ol>
         </div>
 
-        {/* Recipe Tags Section */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-semibold mb-4">Tags</h2>
-          <div className="flex space-x-4">
-            {tekk.tags?.map((tag, index) => (
-              <span key={index} className="bg-indigo-600 text-white py-2 px-4 rounded-lg">{tag}</span>
-            ))}
-          </div>
-        </div>
-
         {/* Recipe Rating Section */}
         <div className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">Rate This Recipe</h2>
@@ -134,10 +157,11 @@ function RecipeDetails() {
               <svg
                 key={star}
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6 text-yellow-400 cursor-pointer"
-                fill="none"
+                className={`h-6 w-6 cursor-pointer ${star <= rating ? "text-yellow-400" : "text-gray-500"}`}
+                fill={star <= rating ? "currentColor" : "none"}
                 viewBox="0 0 24 24"
                 stroke="currentColor"
+                onClick={() => setRating(star)}
               >
                 <path
                   strokeLinecap="round"
@@ -154,16 +178,29 @@ function RecipeDetails() {
         <div className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">Comments</h2>
           <div className="space-y-4">
-            <div className="bg-gray-700 p-4 rounded-lg">
-              <p className="text-lg text-gray-200">John Doe: This recipe is amazing! My family loved it.</p>
-            </div>
-            <div className="bg-gray-700 p-4 rounded-lg">
-              <p className="text-lg text-gray-200">Jane Smith: Easy to follow and delicious!</p>
-            </div>
+            {comments.map((comment, index) => (
+              <div key={index} className="bg-gray-700 p-4 rounded-lg">
+                <p className="text-lg text-gray-200">{comment.user}: {comment.text}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4">
+            <textarea
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              className="w-full bg-gray-800 text-gray-200 rounded-lg p-4"
+              placeholder="Add your comment..."
+            ></textarea>
+            <button
+              onClick={handleSubmit}
+              className="bg-indigo-600 text-white px-6 py-3 rounded-lg mt-4 hover:bg-indigo-700 transition duration-300 ease-in-out transform hover:scale-105"
+            >
+              Submit Comment
+            </button>
           </div>
         </div>
 
-        {/* You May Also Like Section */}
+        {/* Recommendations */}
         <div className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">You May Also Like</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -189,31 +226,6 @@ function RecipeDetails() {
                 <p className="text-sm text-gray-500">No recommendations available</p>
               )
             )}
-          </div>
-        </div>
-
-        {/* Social Media Sharing */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-semibold mb-4">Share This Recipe</h2>
-          <div className="flex space-x-4">
-            <a
-              href="#"
-              className="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700"
-            >
-              Facebook
-            </a>
-            <a
-              href="#"
-              className="bg-blue-400 text-white py-2 px-4 rounded-lg hover:bg-blue-500"
-            >
-              Twitter
-            </a>
-            <a
-              href="#"
-              className="bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700"
-            >
-              Pinterest
-            </a>
           </div>
         </div>
       </div>

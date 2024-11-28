@@ -14,10 +14,13 @@ def register_user_view(request):
 
             # Ensure all necessary fields are provided
             if not username or not email or not password:
-                return JsonResponse({"success": False, "message": "Username, email, and password are required"}, status=400)
+                return JsonResponse({
+                    "success": False, 
+                    "message": "Username, email, and password are required"
+                }, status=400)
 
-            # Call the register_user function from utils.py (pass the correct parameters)
-            result = register_user(username, email, password)  # Pass username, email, and password here
+            # Call the register_user function from utils.py
+            result = register_user(username, email, password)
             return JsonResponse(result)
 
         except json.JSONDecodeError:
@@ -38,10 +41,13 @@ def authenticate_user_view(request):
 
             # Ensure username and password are provided
             if not username or not password:
-                return JsonResponse({"success": False, "message": "Username and password are required"}, status=400)
+                return JsonResponse({
+                    "success": False, 
+                    "message": "Username and password are required"
+                }, status=400)
 
-            # Call the authenticate_user function from utils.py (pass the correct parameters)
-            result = authenticate_user(username, password)  # Pass username and password here
+            # Call the authenticate_user function from utils.py
+            result = authenticate_user(username, password)
             return JsonResponse(result)
 
         except json.JSONDecodeError:

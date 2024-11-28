@@ -4,6 +4,8 @@ from math import ceil
 from django.http import JsonResponse
 from .recommendation import RecipeRecommender
 from rest_framework.response import Response
+from bson import ObjectId
+import json
 
 mongo_uri = "mongodb://localhost:27017"
 db_name = "tekks"
@@ -14,6 +16,7 @@ recommender = RecipeRecommender(mongo_uri, db_name, collection_name)
 client = MongoClient(mongo_uri)
 db = client[db_name]
 tekks_collection = db[collection_name]
+users_collection = db['users']
 
 @api_view(['GET'])
 def tekks_list(request):
@@ -87,3 +90,83 @@ def get_recommendations(request, recipe_id):
 
     except Exception as e:
         return JsonResponse({'error': f'Error processing recommendations: {str(e)}'}, status=500)
+    
+@api_view(['POST'])
+def add_rating_and_comment(request, user_id, recipe_id):
+    try:
+        # Ensure user_id and recipe_id are valid ObjectIds
+        try:
+            user_id_object = ObjectId(user_id)
+            recipe_id_object = ObjectId(recipe_id)
+        except Exception as e:
+            return JsonResponse({"success": False, "message": "Invalid user or recipe ID."}, status=400)
+
+        data = json.loads(request.body)
+        
+        # Get rating and comment from the parsed data
+        rating = data.get("rating")
+        comment = data.get("comment")
+        print("Rating:", rating, "Comment:", comment)  # For debugging
+
+        if rating is None:
+            return JsonResponse({"success": False, "message": "Rating is required and must be a number."}, status=400)
+        
+        rating = float(rating)  # Convert rating to float
+
+        # Check if user exists
+        user = users_collection.find_one({"_id": user_id_object})
+        if not user:
+            return JsonResponse({"success": False, "message": "User not found."}, status=404)
+
+        # Create a new comment object
+        new_comment = {
+            "recipe_id": recipe_id_object,
+            "rating": rating,
+            "comment": comment,
+            "date": "2024-11-29T14:00:00Z"  # You can use current timestamp here
+        }
+
+        # Push the new comment object into the user's comments array
+        users_collection.update_one(
+            {"_id": user_id_object},
+            {"$push": {"comments": new_comment}}
+        )
+
+        # Recalculate the user's average rating based on all their ratings
+        # Retrieve all the ratings for this user
+        comments = users_collection.find_one({"_id": user_id_object}).get("comments", [])
+        ratings = [c['rating'] for c in comments]
+        if ratings:
+            average_rating = sum(ratings) / len(ratings)
+        else:
+            average_rating = 0
+
+        # Update the user's average rating
+        users_collection.update_one(
+            {"_id": user_id_object},
+            {"$set": {"average_rating": average_rating}}
+        )
+
+        return JsonResponse({"success": True, "message": "Rating and comment added successfully."})
+
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
+    
+
+def get_user_comments(request, user_id):
+    try:
+        # Ensure user_id is a valid ObjectId
+        try:
+            user_id_object = ObjectId(user_id)
+        except Exception as e:
+            return JsonResponse({"success": False, "message": "Invalid user ID."}, status=400)
+
+        # Fetch user from the database
+        user = users_collection.find_one({"_id": user_id_object})
+        if not user:
+            return JsonResponse({"success": False, "message": "User not found."}, status=404)
+
+        # Return the user's comments and ratings
+        return JsonResponse({"success": True, "comments": user.get("comments", [])})
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=500)

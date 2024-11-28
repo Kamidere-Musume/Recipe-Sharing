@@ -11,3 +11,22 @@ class Tekk:
         self.url = url
         self.ingredients = ingredients
         self.instructions = instructions
+
+    def save(self):
+        # Save this object to the MongoDB collection
+        tekks_collection.insert_one({
+            "title": self.title,
+            "url": self.url,
+            "ingredients": self.ingredients,
+            "instructions": self.instructions,
+        })
+
+    @classmethod
+    def get_all(cls):
+        # Fetch all recipes from the MongoDB collection
+        return list(tekks_collection.find())
+
+    @classmethod
+    def get_by_id(cls, recipe_id):
+        # Fetch a single recipe by its MongoDB _id
+        return tekks_collection.find_one({"_id": recipe_id})
