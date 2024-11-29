@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import debounce from 'lodash.debounce';
+import debounce from "lodash.debounce";
 
 function RecipePage() {
   const { page } = useParams(); // Get the current page from the URL
@@ -8,7 +8,6 @@ function RecipePage() {
   const [tekks, setTekks] = useState([]); // All recipes loaded in memory
   const [filteredTekks, setFilteredTekks] = useState([]); // Filtered recipes based on search query
   const [error, setError] = useState(null);
-  const [images, setImages] = useState({});
   const [pages, setPages] = useState(parseInt(page || 1, 10)); // Initialize with the URL page or 1
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -23,7 +22,7 @@ function RecipePage() {
   // Fetch recipes from the API whenever `pages` changes
   useEffect(() => {
     setLoading(true);
-    fetch(`http://127.0.0.1:8000/api/tekks?page=${pages}`)
+    fetch(`http://127.0.0.1:8000/api/tekks?page=${pages}&search=${searchQuery}`)
       .then((response) => response.json())
       .then((data) => {
         if (Array.isArray(data.tekks)) {
@@ -39,38 +38,7 @@ function RecipePage() {
         console.error("Error fetching tekks:", err);
       })
       .finally(() => setLoading(false));
-  }, [pages]); // Depend on `pages` to refetch data
-
-  // Fetch images for recipes
-useEffect(() => {
-  const fetchImages = async () => {
-    const accessKey = "3BM4YSwMos54qiKHMjlVtvld2h6eB6z_AnOWGPy7NYM";
-    const newImages = {};
-
-    for (let tekk of tekks) {
-      if (!images[tekk.id]) {
-        try {
-          const response = await fetch(
-            `https://api.unsplash.com/search/photos?query=${tekk.title}&client_id=${accessKey}`
-          );
-          const data = await response.json();
-          if (data.results.length > 0) {
-            newImages[tekk.id] = data.results[0].urls.small;
-          } else {
-            newImages[tekk.id] = defaultImage;
-          }
-        } catch (error) {
-          newImages[tekk.id] = defaultImage;
-        }
-      }
-    }
-    setImages((prevImages) => ({ ...prevImages, ...newImages }));
-  };
-
-  if (tekks.length > 0) {
-    fetchImages();
-  }
-}, [tekks, images]);
+}, [pages, searchQuery]); // Add searchQuery as a dependency to refetch data when search query changes
 
   // Debounced search handler
   const handleSearch = debounce((query) => {
@@ -140,13 +108,13 @@ useEffect(() => {
                   className="hover:cursor-pointer hover:-translate-y-1 transition-transform transform"
                   onClick={() =>
                     navigate("/recipe-details", {
-                      state: { tekk, image: images[tekk.id], page: pages },
+                      state: { tekk, image: tekk.url || defaultImage, page: pages },
                     })
                   }
                 >
                   <div className="relative group rounded-lg overflow-hidden shadow-lg">
                     <img
-                      src={images[tekk.id] || defaultImage}
+                      src={tekk.url || defaultImage}
                       alt={tekk.title}
                       className="w-full h-80 object-cover rounded-lg transition-all duration-300 group-hover:scale-105"
                     />
@@ -172,57 +140,31 @@ useEffect(() => {
           <p className="text-center text-gray-200 text-lg">No Recipes found</p>
         ) : (
           <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
-            {filteredTekks.length === 0 && !searchQuery
-              ? tekks.map((tekk) => (
-                  <li
-                    key={tekk.id}
-                    className="hover:cursor-pointer hover:-translate-y-1 transition-transform transform"
-                    onClick={() =>
-                      navigate("/recipe-details", {
-                        state: { tekk, image: images[tekk.id], page: pages },
-                      })
-                    }
-                  >
-                    <div className="relative group rounded-lg overflow-hidden shadow-lg">
-                      <img
-                        src={images[tekk.id] || defaultImage}
-                        alt={tekk.title}
-                        className="w-full h-80 object-cover rounded-lg transition-all duration-300 group-hover:scale-105"
-                      />
-                      <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
-                        <p className="text-white text-lg font-medium">Click to View Recipe</p>
-                      </div>
-                    </div>
-                    <h2 className="text-xl font-semibold text-center text-white mt-3 truncate">
-                      {tekk.title}
-                    </h2>
-                  </li>
-                ))
-              : filteredTekks.map((tekk) => (
-                  <li
-                    key={tekk.id}
-                    className="hover:cursor-pointer hover:-translate-y-1 transition-transform transform"
-                    onClick={() =>
-                      navigate("/recipe-details", {
-                        state: { tekk, image: images[tekk.id], page: pages },
-                      })
-                    }
-                  >
-                    <div className="relative group rounded-lg overflow-hidden shadow-lg">
-                      <img
-                        src={images[tekk.id] || defaultImage}
-                        alt={tekk.title}
-                        className="w-full h-80 object-cover rounded-lg transition-all duration-300 group-hover:scale-105"
-                      />
-                      <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
-                        <p className="text-white text-lg font-medium">Click to View Recipe</p>
-                      </div>
-                    </div>
-                    <h2 className="text-xl font-semibold text-center text-white mt-3 truncate">
-                      {tekk.title}
-                    </h2>
-                  </li>
-                ))}
+            {filteredTekks.map((tekk) => (
+              <li
+                key={tekk.id}
+                className="hover:cursor-pointer hover:-translate-y-1 transition-transform transform"
+                onClick={() =>
+                  navigate("/recipe-details", {
+                    state: { tekk, image: tekk.url || defaultImage, page: pages },
+                  })
+                }
+              >
+                <div className="relative group rounded-lg overflow-hidden shadow-lg">
+                  <img
+                    src={tekk.url || defaultImage}
+                    alt={tekk.title}
+                    className="w-full h-80 object-cover rounded-lg transition-all duration-300 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
+                    <p className="text-white text-lg font-medium">Click to View Recipe</p>
+                  </div>
+                </div>
+                <h2 className="text-xl font-semibold text-center text-white mt-3 truncate">
+                  {tekk.title}
+                </h2>
+              </li>
+            ))}
           </ul>
         )}
       </div>
@@ -258,8 +200,10 @@ useEffect(() => {
         >
           {loading ? (
             <span className="animate-pulse">Loading...</span>
+          ) : hasMore ? (
+            "Next"
           ) : (
-            hasMore ? "Next" : "No More Recipes"
+            "No More Recipes"
           )}
         </button>
       </div>

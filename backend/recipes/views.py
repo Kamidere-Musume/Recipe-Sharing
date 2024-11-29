@@ -24,6 +24,53 @@ users_collection = db['users']
 def tekks_list(request):
     try:
         page = int(request.query_params.get('page', 1))  # Default to page 1
+        search_query = request.query_params.get('search', '')  # Get search query
+        limit = 12  # Items per page
+        skip = (page - 1) * limit
+
+        # Build search query if search term is provided
+        if search_query:
+            # Perform search based on the title field
+            tekks = list(tekks_collection.find({
+                "title": {"$regex": search_query, "$options": "i"}
+            }).skip(skip).limit(limit))
+        else:
+            # If no search term, fetch all tekks
+            tekks = list(tekks_collection.find().skip(skip).limit(limit))
+
+        total_tekks = tekks_collection.count_documents({
+            "title": {"$regex": search_query, "$options": "i"} if search_query else {}
+        })  # Count documents based on search query
+
+        # Convert data to JSON-serializable format
+        tekks_data = [
+            {
+                "id": str(tekk['_id']),  # ObjectId to string
+                "title": tekk.get('title', ''),
+                "url": tekk.get('url', ''),
+                "ingredients": tekk.get('ingredients', []),
+                "instructions": tekk.get('instructions', [])
+            }
+            for tekk in tekks
+        ]
+
+        # Pagination metadata
+        total_pages = ceil(total_tekks / limit)
+        metadata = {
+            "current_page": page,
+            "total_pages": total_pages,
+            "total_tekks": total_tekks,
+            "has_next": page < total_pages,
+            "has_previous": page > 1,
+        }
+
+        return Response({"metadata": metadata, "tekks": tekks_data})
+
+    except Exception as e:
+        return Response({"error": str(e)}, status=400)
+
+    try:
+        page = int(request.query_params.get('page', 1))  # Default to page 1
         limit = 12  # Items per page
         skip = (page - 1) * limit
 
@@ -170,3 +217,59 @@ def add_rating_and_comment(request, user_id, recipe_id):
     except Exception as e:
         logger.error(f"Error: {str(e)}")
         return JsonResponse({"success": False, "error": str(e)}, status=500)
+    
+
+@api_view(['GET'])
+def get_recipe_comments(request, recipe_id):
+    try:
+        # Ensure recipe_id is a valid ObjectId
+        recipe_id_object = ObjectId(recipe_id)
+    except Exception as e:
+        return JsonResponse({"success": False, "message": "Invalid recipe ID."}, status=400)
+
+    # Find all comments for the recipe
+    comments = users_collection.aggregate([
+        {"$unwind": "$comments"},  # Flatten the comments array
+        {"$match": {"comments.recipe_id": recipe_id_object}},  # Match by recipe_id
+        {
+            "$project": {
+                "_id": 0,
+                "username": "$username",
+                "rating": "$comments.rating",
+                "comment": "$comments.comment",
+                "date": "$comments.date"
+            }
+        }
+    ])
+
+    # Convert cursor to a list
+    comments_list = list(comments)
+    return JsonResponse({"success": True, "comments": comments_list})
+
+
+
+@api_view(['GET'])
+def get_average_rating(request, recipe_id):
+    try:
+        # Ensure recipe_id is a valid ObjectId
+        recipe_id_object = ObjectId(recipe_id)
+    except Exception as e:
+        return JsonResponse({"success": False, "message": "Invalid recipe ID."}, status=400)
+
+    # Find all users who have rated the recipe and calculate average rating
+    users_with_ratings = users_collection.aggregate([
+        {"$unwind": "$comments"},  # Flatten the comments array
+        {"$match": {"comments.recipe_id": recipe_id_object}},  # Match by recipe_id
+        {"$group": {
+            "_id": None,
+            "average_rating": {"$avg": "$comments.rating"}
+        }}
+    ])
+
+    average_rating_result = list(users_with_ratings)
+    
+    if average_rating_result:
+        return JsonResponse({"success": True, "average_rating": average_rating_result[0]["average_rating"]})
+    else:
+        return JsonResponse({"success": True, "average_rating": 0})  # If no ratings are found, return 0
+    

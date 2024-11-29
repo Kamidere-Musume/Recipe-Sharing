@@ -9,12 +9,11 @@ function RecipeDetails() {
   const [recommendedRecipes, setRecommendedRecipes] = useState({});
   const [loadingRecommendations, setLoadingRecommendations] = useState(true);
   const [successMessage, setSuccessMessage] = useState("");
-    const [errorMessage, setErrorMessage] = useState("");
-
+  const [errorMessage, setErrorMessage] = useState("");
   const [rating, setRating] = useState(0); // For storing user rating
   const [newComment, setNewComment] = useState(""); // For user comment input
   const [comments, setComments] = useState([]); // For storing comments
-
+  const [averageRating, setAverageRating] = useState(null); // For storing average rating
   const fetchRecommendations = async (currentRecipeId) => {
     try {
       setLoadingRecommendations(true);
@@ -53,6 +52,50 @@ function RecipeDetails() {
   }, [tekk?.id]);
 
 
+
+  const fetchComments = async (recipeId) => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/tekks/comments/${recipeId}/`);
+      const result = await response.json();
+  
+      if (result.success) {
+        setComments(result.comments); // Update comments state
+      } else {
+        console.error("Failed to fetch comments:", result.message);
+      }
+    } catch (error) {
+      console.error("Error fetching comments:", error);
+    }
+  };
+  useEffect(() => {
+    if (tekk?.id) {
+      fetchComments(tekk.id); // Fetch comments for the current recipe
+    }
+  }, [tekk?.id]);
+    
+
+  const fetchAverageRating = async (recipeId) => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/tekks/average-rating/${recipeId}/`);
+      const result = await response.json();
+
+      if (result.success) {
+        setAverageRating(result.average_rating); // Update the state with the average rating
+      } else {
+        console.error("Failed to fetch average rating:", result.message);
+      }
+    } catch (error) {
+      console.error("Error fetching average rating:", error);
+    }
+  };
+  useEffect(() => {
+    if (tekk?.id) { 
+      fetchRecommendations(tekk.id);
+      fetchComments(tekk.id); // Fetch comments
+      fetchAverageRating(tekk.id); // Fetch average rating
+    }
+  }, [tekk?.id]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
   
@@ -74,7 +117,6 @@ function RecipeDetails() {
       const result = await response.json();
   
       if (result.success) {
-        // Add the new comment to the frontend without waiting for a reload
         setComments((prevComments) => [
           ...prevComments,
           {
@@ -84,17 +126,17 @@ function RecipeDetails() {
             date: new Date().toISOString(),
           },
         ]);
-  
-        // Optionally, clear input fields
-        setNewComment("");
+
+        setNewComment(""); // Clear the input field
         setRating(0);
         setSuccessMessage("Comment added successfully!");
         setErrorMessage("");
-        
+        fetchAverageRating(tekk.id);
       } else {
-        setErrorMessage(result.message);
+        setErrorMessage(result.message || "Failed to add comment.");
         setSuccessMessage("");
       }
+      
     } catch (error) {
       console.error("Error submitting rating and comment:", error);
       setErrorMessage("Something went wrong. Please try again.");
@@ -199,19 +241,29 @@ function RecipeDetails() {
               </svg>
             ))}
           </div>
+          {averageRating !== null && (
+            <p className="mt-2 text-lg text-gray-300">
+              Average Rating: <span className="text-yellow-400">{averageRating.toFixed(1)}</span> / 5
+            </p>
+          )}
         </div>
 
         <div className="mb-8">
-          <h2 className="text-2xl font-semibold mb-4">Comments</h2>
-          <div className="space-y-4">
-            {comments.map((comment, index) => (
-              <div key={index} className="bg-gray-700 p-4 rounded-lg">
-                <p className="text-lg text-gray-200">{comment.username}: {comment.comment}</p>
-                <p className="text-sm text-gray-400">Rating: {comment.rating} | {new Date(comment.date).toLocaleString()}</p>
-              </div>
-            ))}
-          </div>
-          </div>
+  <h2 className="text-2xl font-semibold mb-4">Comments</h2>
+  {comments.length > 0 ? (
+    comments.map((comment, index) => (
+      <div key={index} className="bg-gray-700 p-4 rounded-lg">
+        <p className="text-lg text-gray-200">{comment.username}: {comment.comment}</p>
+        <p className="text-sm text-gray-400">
+          Rating: {comment.rating} | {new Date(comment.date).toLocaleString()}
+        </p>
+      </div>
+    ))
+  ) : (
+    <p className="text-gray-500">No comments available yet. Be the first to comment!</p>
+  )}
+</div>
+
           <div className="mt-4">
             <textarea
               value={newComment}
@@ -226,44 +278,43 @@ function RecipeDetails() {
               Submit Comment
             </button>
           </div>
-
-        {/* Recommendations */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-semibold mb-4">You May Also Like</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-  {loadingRecommendations ? (
-    <p className="text-gray-500">Loading recommendations...</p>
-  ) : (
-    recommendedRecipes["recommended_recipes"].length > 0 ? (
-      recommendedRecipes["recommended_recipes"].map((recipe) => (
-        <div key={recipe.id} className="bg-gray-700 p-4 rounded-lg">
-          <img
-            src={recipe.url}
-            alt={recipe.title}
-            className="w-full h-48 object-cover rounded-lg mb-4"
-            onClick={() => {
-              // Pass the current page number when navigating
-              navigate("/recipe-details", { 
-                state: { 
-                  tekk: recipe, 
-                  image: recipe.url, 
-                  page: page  // Pass the current page number
-                }
-              });
-              window.scrollTo(0,0);
-            }}
-          />
-          <h3 className="text-xl font-bold text-gray-200">{recipe.title}</h3>
-          <p className="text-gray-300">{recipe.description}</p>
-        </div>
-      ))
+          {/* Recommendations */}
+<div className="mb-8">
+  <h2 className="text-2xl font-semibold mb-4">You May Also Like</h2>
+  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+    {loadingRecommendations ? (
+      <p className="text-gray-500">Loading recommendations...</p>
     ) : (
-      <p className="text-sm text-gray-500">No recommendations available</p>
-    )
-  )}
+      recommendedRecipes["recommended_recipes"].length > 0 ? (
+        recommendedRecipes["recommended_recipes"].map((recipe) => (
+          <div key={recipe.id} className="bg-gray-700 p-4 rounded-lg transition-transform transform hover:scale-105 hover:shadow-lg">
+            <img
+              src={recipe.url}
+              alt={recipe.title}
+              className="w-full h-48 object-cover rounded-lg mb-4 transition-all duration-300 group-hover:scale-105 group-hover:opacity-80"
+              onClick={() => {
+                // Pass the current page number when navigating
+                navigate("/recipe-details", { 
+                  state: { 
+                    tekk: recipe, 
+                    image: recipe.url, 
+                    page: page  // Pass the current page number
+                  }
+                });
+                window.scrollTo(0, 0);
+              }}
+            />
+            <h3 className="text-xl font-bold text-gray-200 mb-2 truncate">{recipe.title}</h3>
+            <p className="text-gray-300 text-sm">{recipe.description}</p>
+          </div>
+        ))
+      ) : (
+        <p className="text-sm text-gray-500">No recommendations available</p>
+      )
+    )}
+  </div>
 </div>
 
-        </div>
       </div>
     </div>
   );
