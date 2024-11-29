@@ -42,35 +42,35 @@ function RecipePage() {
   }, [pages]); // Depend on `pages` to refetch data
 
   // Fetch images for recipes
-  useEffect(() => {
-    const fetchImages = async () => {
-      const accessKey = "3BM4YSwMos54qiKHMjlVtvld2h6eB6z_AnOWGPy7NYM";
-      const newImages = {};
+useEffect(() => {
+  const fetchImages = async () => {
+    const accessKey = "3BM4YSwMos54qiKHMjlVtvld2h6eB6z_AnOWGPy7NYM";
+    const newImages = {};
 
-      for (let tekk of tekks) {
-        if (!images[tekk.id]) {
-          try {
-            const response = await fetch(
-              `https://api.unsplash.com/search/photos?query=${tekk.title}&client_id=${accessKey}`
-            );
-            const data = await response.json();
-            if (data.results.length > 0) {
-              newImages[tekk.id] = data.results[0].urls.small;
-            } else {
-              newImages[tekk.id] = defaultImage;
-            }
-          } catch (error) {
+    for (let tekk of tekks) {
+      if (!images[tekk.id]) {
+        try {
+          const response = await fetch(
+            `https://api.unsplash.com/search/photos?query=${tekk.title}&client_id=${accessKey}`
+          );
+          const data = await response.json();
+          if (data.results.length > 0) {
+            newImages[tekk.id] = data.results[0].urls.small;
+          } else {
             newImages[tekk.id] = defaultImage;
           }
+        } catch (error) {
+          newImages[tekk.id] = defaultImage;
         }
       }
-      setImages((prevImages) => ({ ...prevImages, ...newImages }));
-    };
-
-    if (tekks.length > 0) {
-      fetchImages();
     }
-  }, [tekks, images]);
+    setImages((prevImages) => ({ ...prevImages, ...newImages }));
+  };
+
+  if (tekks.length > 0) {
+    fetchImages();
+  }
+}, [tekks, images]);
 
   // Debounced search handler
   const handleSearch = debounce((query) => {

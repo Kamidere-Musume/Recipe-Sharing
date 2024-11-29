@@ -8,6 +8,8 @@ function RecipeDetails() {
   const user = JSON.parse(localStorage.getItem("user"));
   const [recommendedRecipes, setRecommendedRecipes] = useState({});
   const [loadingRecommendations, setLoadingRecommendations] = useState(true);
+  const [successMessage, setSuccessMessage] = useState("");
+    const [errorMessage, setErrorMessage] = useState("");
 
   const [rating, setRating] = useState(0); // For storing user rating
   const [newComment, setNewComment] = useState(""); // For user comment input
@@ -50,49 +52,72 @@ function RecipeDetails() {
     }
   }, [tekk?.id]);
 
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-
+  
     try {
-      
-      const response = await fetch(`http://localhost:8000/api/tekks/reviews/${user.user_id}/${tekk.id}/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          rating: rating,
-          comment: newComment,
-        }),
-      });
-
+      const response = await fetch(
+        `http://localhost:8000/api/tekks/reviews/${user.user_id}/${tekk.id}/`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            rating: rating,
+            comment: newComment,
+          }),
+        }
+      );
+  
       const result = await response.json();
-      console.log(result)
-     
+  
       if (result.success) {
-       comments.push({user: user.username, text: newComment})
-       setNewComment('')
+        // Add the new comment to the frontend without waiting for a reload
+        setComments((prevComments) => [
+          ...prevComments,
+          {
+            username: user.username,
+            rating: rating,
+            comment: newComment,
+            date: new Date().toISOString(),
+          },
+        ]);
+  
+        // Optionally, clear input fields
+        setNewComment("");
+        setRating(0);
+        setSuccessMessage("Comment added successfully!");
+        setErrorMessage("");
+        
       } else {
         setErrorMessage(result.message);
-        setSuccessMessage('');
+        setSuccessMessage("");
       }
     } catch (error) {
-      console.error('Error submitting rating and comment:', error);
-      setErrorMessage('Something went wrong. Please try again.');
-      setSuccessMessage('');
+      console.error("Error submitting rating and comment:", error);
+      setErrorMessage("Something went wrong. Please try again.");
+      setSuccessMessage("");
     }
   };
+  
   if (!tekk) {
     return (
       <div className="text-center mt-8">
         <p className="text-red-500 text-xl">No recipe data found.</p>
         <button
-          className="bg-indigo-600 text-white px-6 py-3 rounded-lg mt-6 hover:bg-indigo-700 transition duration-300 ease-in-out transform hover:scale-105"
-          onClick={() => navigate("/")}
-        >
-          Back to Recipes
-        </button>
+  className="bg-indigo-600 text-white px-6 py-3 rounded-lg mb-8 hover:bg-indigo-700 transition duration-300 ease-in-out transform hover:scale-105"
+  onClick={() => {
+    if (page) {
+      navigate(`/recipes/${page}`);
+    } else {
+      navigate('/recipes'); // fallback if page is undefined
+    }
+  }}
+>
+  Back to Recipes
+</button>
       </div>
     );
   }
@@ -149,7 +174,9 @@ function RecipeDetails() {
           </ol>
         </div>
 
-        {/* Recipe Rating Section */}
+        {successMessage && <div className="success-message">{successMessage}</div>}
+            {errorMessage && <div className="error-message">{errorMessage}</div>}
+
         <div className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">Rate This Recipe</h2>
           <div className="flex space-x-2">
@@ -174,15 +201,16 @@ function RecipeDetails() {
           </div>
         </div>
 
-        {/* Comments Section */}
         <div className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">Comments</h2>
           <div className="space-y-4">
             {comments.map((comment, index) => (
               <div key={index} className="bg-gray-700 p-4 rounded-lg">
-                <p className="text-lg text-gray-200">{comment.user}: {comment.text}</p>
+                <p className="text-lg text-gray-200">{comment.username}: {comment.comment}</p>
+                <p className="text-sm text-gray-400">Rating: {comment.rating} | {new Date(comment.date).toLocaleString()}</p>
               </div>
             ))}
+          </div>
           </div>
           <div className="mt-4">
             <textarea
@@ -198,35 +226,43 @@ function RecipeDetails() {
               Submit Comment
             </button>
           </div>
-        </div>
 
         {/* Recommendations */}
         <div className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">You May Also Like</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {loadingRecommendations ? (
-              <p className="text-gray-500">Loading recommendations...</p>
-            ) : (
-              recommendedRecipes["recommended_recipes"].length > 0 ? (
-                recommendedRecipes["recommended_recipes"].map((recipe) => (
-                  <div key={recipe.id} className="bg-gray-700 p-4 rounded-lg">
-                    <img
-                      src={recipe.url}
-                      alt={recipe.title}
-                      className="w-full h-48 object-cover rounded-lg mb-4"
-                      onClick={() => {navigate("/recipe-details", { state: { tekk: recipe, image: recipe.url } })
-                      window.scrollTo(0,0)
-                    }}
-                    />
-                    <h3 className="text-xl font-bold text-gray-200">{recipe.title}</h3>
-                    <p className="text-gray-300">{recipe.description}</p>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-gray-500">No recommendations available</p>
-              )
-            )}
-          </div>
+  {loadingRecommendations ? (
+    <p className="text-gray-500">Loading recommendations...</p>
+  ) : (
+    recommendedRecipes["recommended_recipes"].length > 0 ? (
+      recommendedRecipes["recommended_recipes"].map((recipe) => (
+        <div key={recipe.id} className="bg-gray-700 p-4 rounded-lg">
+          <img
+            src={recipe.url}
+            alt={recipe.title}
+            className="w-full h-48 object-cover rounded-lg mb-4"
+            onClick={() => {
+              // Pass the current page number when navigating
+              navigate("/recipe-details", { 
+                state: { 
+                  tekk: recipe, 
+                  image: recipe.url, 
+                  page: page  // Pass the current page number
+                }
+              });
+              window.scrollTo(0,0);
+            }}
+          />
+          <h3 className="text-xl font-bold text-gray-200">{recipe.title}</h3>
+          <p className="text-gray-300">{recipe.description}</p>
+        </div>
+      ))
+    ) : (
+      <p className="text-sm text-gray-500">No recommendations available</p>
+    )
+  )}
+</div>
+
         </div>
       </div>
     </div>

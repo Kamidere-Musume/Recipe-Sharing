@@ -1,3 +1,5 @@
+import logging
+from venv import logger
 from rest_framework.decorators import api_view
 from pymongo import MongoClient
 from math import ceil
@@ -91,32 +93,48 @@ def get_recommendations(request, recipe_id):
     except Exception as e:
         return JsonResponse({'error': f'Error processing recommendations: {str(e)}'}, status=500)
     
-@api_view(['POST'])
+logger = logging.getLogger(__name__)
+
 def add_rating_and_comment(request, user_id, recipe_id):
     try:
+        logger.debug(f"Received request body: {request.body}")
+        
         # Ensure user_id and recipe_id are valid ObjectIds
         try:
             user_id_object = ObjectId(user_id)
             recipe_id_object = ObjectId(recipe_id)
         except Exception as e:
+            logger.error(f"Invalid user or recipe ID: {e}")
             return JsonResponse({"success": False, "message": "Invalid user or recipe ID."}, status=400)
 
-        data = json.loads(request.body)
+        # Log the user_id being used for lookup
+        logger.debug(f"Looking for user with user_id: {user_id_object}")
+
+        # Fetch user from the database
+        user = users_collection.find_one({"_id": user_id_object})
         
-        # Get rating and comment from the parsed data
+        # Log whether the user was found or not
+        if not user:
+            logger.error(f"User not found: {user_id_object}")
+            return JsonResponse({"success": False, "message": "User not found."}, status=404)
+
+        # Parse the JSON body
+        data = json.loads(request.body)
+        logger.debug(f"Parsed request data: {data}")
+
         rating = data.get("rating")
         comment = data.get("comment")
-        print("Rating:", rating, "Comment:", comment)  # For debugging
 
         if rating is None:
             return JsonResponse({"success": False, "message": "Rating is required and must be a number."}, status=400)
-        
+
         rating = float(rating)  # Convert rating to float
 
-        # Check if user exists
-        user = users_collection.find_one({"_id": user_id_object})
-        if not user:
-            return JsonResponse({"success": False, "message": "User not found."}, status=404)
+        # Check if recipe exists
+        recipe = tekks_collection.find_one({"_id": recipe_id_object})
+        if not recipe:
+            logger.error(f"Recipe not found: {recipe_id_object}")
+            return JsonResponse({"success": False, "message": "Recipe not found."}, status=404)
 
         # Create a new comment object
         new_comment = {
@@ -126,14 +144,13 @@ def add_rating_and_comment(request, user_id, recipe_id):
             "date": "2024-11-29T14:00:00Z"  # You can use current timestamp here
         }
 
-        # Push the new comment object into the user's comments array
+        # Add the new comment to the user's comment array
         users_collection.update_one(
             {"_id": user_id_object},
             {"$push": {"comments": new_comment}}
         )
 
         # Recalculate the user's average rating based on all their ratings
-        # Retrieve all the ratings for this user
         comments = users_collection.find_one({"_id": user_id_object}).get("comments", [])
         ratings = [c['rating'] for c in comments]
         if ratings:
@@ -147,26 +164,9 @@ def add_rating_and_comment(request, user_id, recipe_id):
             {"$set": {"average_rating": average_rating}}
         )
 
+        # Successful response
         return JsonResponse({"success": True, "message": "Rating and comment added successfully."})
 
     except Exception as e:
-        return JsonResponse({"success": False, "error": str(e)}, status=500)
-    
-
-def get_user_comments(request, user_id):
-    try:
-        # Ensure user_id is a valid ObjectId
-        try:
-            user_id_object = ObjectId(user_id)
-        except Exception as e:
-            return JsonResponse({"success": False, "message": "Invalid user ID."}, status=400)
-
-        # Fetch user from the database
-        user = users_collection.find_one({"_id": user_id_object})
-        if not user:
-            return JsonResponse({"success": False, "message": "User not found."}, status=404)
-
-        # Return the user's comments and ratings
-        return JsonResponse({"success": True, "comments": user.get("comments", [])})
-    except Exception as e:
+        logger.error(f"Error: {str(e)}")
         return JsonResponse({"success": False, "error": str(e)}, status=500)
