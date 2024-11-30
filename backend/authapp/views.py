@@ -48,7 +48,16 @@ def authenticate_user_view(request):
 
             # Call the authenticate_user function from utils.py
             result = authenticate_user(username, password)
-            return JsonResponse(result)
+            
+            # If authentication is successful, include a success message
+            if result["success"]:
+                return JsonResponse({
+                    "success": True,
+                    "message": "Login Successful",  # Added login success message
+                    "user": result.get("user")  # Include user data if needed
+                })
+            else:
+                return JsonResponse(result)  # Return the failure response from authenticate_user
 
         except json.JSONDecodeError:
             return JsonResponse({"success": False, "message": "Invalid JSON data"}, status=400)

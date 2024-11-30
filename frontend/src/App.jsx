@@ -5,11 +5,11 @@ import Navbar from './components/Navbar';
 import RecipesPage from './pages/RecipesPage';
 import AboutPage from './pages/AboutPage';
 import ContactPage from './pages/ContactPage';
-import SubmitRecipePage from './pages/SubmitRecipePage';
 import HomePage from './pages/HomePage';
 import RecipeDetails from './pages/RecipeDetails';
 import Login from './pages/LoginPage';
 import Register from './pages/RegisterPage';
+import Footer from "./components/Footer";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -19,14 +19,14 @@ function App() {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
       try {
-        setUser(JSON.parse(storedUser)); // Set user data if valid
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser); // Set user data if valid
       } catch (error) {
         console.error("Error parsing user data:", error);
         localStorage.removeItem("user"); // Clear invalid data from localStorage
       }
     }
   }, []);
-  
 
   // Helper function for protected routes
   const ProtectedRoute = ({ element }) => {
@@ -47,10 +47,10 @@ function App() {
     <div>
       <Navbar user={user} logoutUser={logoutUser} />
       <Routes>
-        {/* Redirect to homepage if user is logged in */}
+        {/* Homepage Route */}
         <Route path="/" element={user ? <HomePage /> : <Navigate to="/login" />} />
 
-        {/* If already logged in, redirect to homepage from login/register */}
+        {/* Login and Register Routes */}
         <Route
           path="/login"
           element={user ? <Navigate to="/" /> : <Login loginUser={loginUser} />}
@@ -64,10 +64,10 @@ function App() {
         <Route path="/home" element={<ProtectedRoute element={<HomePage />} />} />
         <Route path="/about" element={<ProtectedRoute element={<AboutPage />} />} />
         <Route path="/contact" element={<ProtectedRoute element={<ContactPage />} />} />
-        <Route path="/submit-recipe" element={<ProtectedRoute element={<SubmitRecipePage />} />} />
         <Route path="/recipe-details" element={<ProtectedRoute element={<RecipeDetails />} />} />
         <Route path="/recipes/:page" element={<ProtectedRoute element={<RecipesPage user={user} />} />} />
       </Routes>
+      <Footer/>
     </div>
   );
 }

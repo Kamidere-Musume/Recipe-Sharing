@@ -20,7 +20,7 @@ function RecipePage() {
   }, [page]);
 
   // Fetch recipes from the API whenever `pages` changes
-  useEffect(() => {
+ useEffect(() => {
     setLoading(true);
     fetch(`http://127.0.0.1:8000/api/tekks?page=${pages}&search=${searchQuery}`)
       .then((response) => response.json())
@@ -41,18 +41,25 @@ function RecipePage() {
 }, [pages, searchQuery]); // Add searchQuery as a dependency to refetch data when search query changes
 
   // Debounced search handler
-  const handleSearch = debounce((query) => {
-    setSearchQuery(query);
-    // Filter recipes based on search query
-    if (query.trim() === "") {
-      setFilteredTekks(tekks); // Show all recipes if query is empty
-    } else {
-      const filtered = tekks.filter((tekk) =>
-        tekk.title.toLowerCase().includes(query.toLowerCase())
-      );
-      setFilteredTekks(filtered);
-    }
-  }, 300); // 300ms delay to limit the number of times the function is triggered
+const handleSearch = debounce((query) => {
+  setSearchQuery(query);
+  // Filter recipes based on search query
+  if (query.trim() === "") {
+    setFilteredTekks(tekks); // Show all recipes if query is empty
+  } else {
+    const filtered = [];
+    const seen = new Set(); // To track seen recipe IDs
+
+    tekks.forEach((tekk) => {
+      if (tekk.title.toLowerCase().includes(query.toLowerCase()) && !seen.has(tekk.id)) {
+        filtered.push(tekk);
+        seen.add(tekk.id); // Mark this recipe ID as seen
+      }
+    });
+
+    setFilteredTekks(filtered); // Update filtered recipes
+  }
+}, 300); // 300ms delay to limit the number of times the function is triggered // 300ms delay to limit the number of times the function is triggered
 
   // Handle search input change
   const handleSearchChange = (event) => {
@@ -90,7 +97,7 @@ function RecipePage() {
           type="text"
           placeholder="Search recipes..."
           onChange={handleSearchChange}
-          className="w-1/2 p-3 rounded-lg text-lg text-gray-800 bg-transparent placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-600 shadow-md"
+          className="w-1/2 p-3 rounded-lg text-lg text-white bg-transparent placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-600 shadow-md"
         />
       </div>
 

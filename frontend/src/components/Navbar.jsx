@@ -45,13 +45,6 @@ const Navbar = ({ user, logoutUser }) => {
               </button>
               {isOpen && (
                 <div className="absolute right-0 mt-2 w-48 bg-opacity-90 bg-black rounded-lg shadow-lg border border-gray-600">
-                  <Link
-                    to={`/profile/${user.username}`}
-                    className="block w-full text-left px-4 py-2 text-gray-200 hover:bg-gray-700 rounded-t-lg"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    Profile
-                  </Link>
                   <button
                     onClick={logoutUser}
                     className="block w-full text-left px-4 py-2 text-gray-200 hover:bg-gray-700 rounded-b-lg"

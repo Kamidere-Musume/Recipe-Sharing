@@ -42,6 +42,11 @@ function RecipeDetails() {
   };
 
   useEffect(() => {
+    window.scrollTo(0, 0); 
+  }, [tekk?.id]);
+
+
+  useEffect(() => {
     console.log("Updated recommendations:", recommendedRecipes);
   }, [recommendedRecipes]);
 
@@ -217,9 +222,48 @@ function RecipeDetails() {
         </div>
 
         {successMessage && <div className="success-message">{successMessage}</div>}
-            {errorMessage && <div className="error-message">{errorMessage}</div>}
+        {errorMessage && <div className="error-message">{errorMessage}</div>}
 
+        {/* Recommendations */}
         <div className="mb-8">
+          <h2 className="text-2xl font-semibold mb-4">You May Also Like</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {loadingRecommendations ? (
+            <p className="text-gray-500">Loading recommendations...</p>
+            ) : (
+            recommendedRecipes["recommended_recipes"].length > 0 ? (
+            recommendedRecipes["recommended_recipes"].map((recipe) => (
+          <div key={recipe.id} className="bg-gray-700 p-4 rounded-lg">
+          <img
+            src={recipe.url}
+            alt={recipe.title}
+            className="w-full h-48 object-cover rounded-lg mb-4"
+            onClick={() => {
+              // Pass the current page number when navigating
+              navigate("/recipe-details", { 
+                state: { 
+                  tekk: recipe, 
+                  image: recipe.url, 
+                  page: page  // Pass the current page number
+                }
+              });
+              window.scrollTo(0,0);
+            }}
+          />
+          <h3 className="text-xl font-bold text-gray-200">{recipe.title}</h3>
+          <p className="text-gray-300">{recipe.description}</p>
+        </div>
+      ))
+    ) : (
+      <p className="text-sm text-gray-500">No recommendations available</p>
+    )
+  )}
+  </div>
+
+    </div>
+
+
+    <div className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">Rate This Recipe</h2>
           <div className="flex space-x-2">
             {[1, 2, 3, 4, 5].map((star) => (
@@ -247,20 +291,36 @@ function RecipeDetails() {
             </p>
           )}
         </div>
-
         <div className="mb-8">
-  <h2 className="text-2xl font-semibold mb-4">Comments</h2>
+  <h2 className="text-2xl font-semibold mb-6 text-gray-200 border-b border-gray-700 pb-2">
+    Comments
+  </h2>
   {comments.length > 0 ? (
-    comments.map((comment, index) => (
-      <div key={index} className="bg-gray-700 p-4 rounded-lg">
-        <p className="text-lg text-gray-200">{comment.username}: {comment.comment}</p>
-        <p className="text-sm text-gray-400">
-          Rating: {comment.rating} | {new Date(comment.date).toLocaleString()}
-        </p>
-      </div>
-    ))
+    <div className="space-y-6">
+      {comments.map((comment, index) => (
+        <div
+          key={index}
+          className="bg-gray-800 rounded-lg p-6 shadow-md hover:shadow-lg transition-shadow duration-300"
+        >
+          <div className="flex justify-between items-center mb-3">
+            <p className="text-lg font-semibold text-indigo-400">
+              {comment.username}
+            </p>
+            <p className="text-sm text-gray-500">
+              {new Date(comment.date).toLocaleString()}
+            </p>
+          </div>
+          <p className="text-gray-300 mb-4">{comment.comment}</p>
+          <div className="text-yellow-400 font-medium">
+            Rating: {comment.rating} / 5
+          </div>
+        </div>
+      ))}
+    </div>
   ) : (
-    <p className="text-gray-500">No comments available yet. Be the first to comment!</p>
+    <p className="text-gray-500 text-lg">
+      No comments available yet. Be the first to comment!
+    </p>
   )}
 </div>
 
@@ -278,43 +338,6 @@ function RecipeDetails() {
               Submit Comment
             </button>
           </div>
-          {/* Recommendations */}
-<div className="mb-8">
-  <h2 className="text-2xl font-semibold mb-4">You May Also Like</h2>
-  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-    {loadingRecommendations ? (
-      <p className="text-gray-500">Loading recommendations...</p>
-    ) : (
-      recommendedRecipes["recommended_recipes"].length > 0 ? (
-        recommendedRecipes["recommended_recipes"].map((recipe) => (
-          <div key={recipe.id} className="bg-gray-700 p-4 rounded-lg transition-transform transform hover:scale-105 hover:shadow-lg">
-            <img
-              src={recipe.url}
-              alt={recipe.title}
-              className="w-full h-48 object-cover rounded-lg mb-4 transition-all duration-300 group-hover:scale-105 group-hover:opacity-80"
-              onClick={() => {
-                // Pass the current page number when navigating
-                navigate("/recipe-details", { 
-                  state: { 
-                    tekk: recipe, 
-                    image: recipe.url, 
-                    page: page  // Pass the current page number
-                  }
-                });
-                window.scrollTo(0, 0);
-              }}
-            />
-            <h3 className="text-xl font-bold text-gray-200 mb-2 truncate">{recipe.title}</h3>
-            <p className="text-gray-300 text-sm">{recipe.description}</p>
-          </div>
-        ))
-      ) : (
-        <p className="text-sm text-gray-500">No recommendations available</p>
-      )
-    )}
-  </div>
-</div>
-
       </div>
     </div>
   );

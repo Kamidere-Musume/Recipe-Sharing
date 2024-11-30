@@ -29,7 +29,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'recipes',
-    'authapp' # Your app for handling tekks
+    'authapp',
+    'contact'# Your app for handling tekks
 ]
 
 CORS_ALLOW_ALL_ORIGINS = True
@@ -131,3 +132,11 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
 STATIC_URL = '/static/'
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587  # Or 465 for SSL
+EMAIL_USE_TLS = True  # Set to True for TLS, or False for SSL
+EMAIL_HOST_USER = 'annoyedflake@gmail.com'
+EMAIL_HOST_PASSWORD = 'flus llho ivxu scpp '  # Or App Password if 2-Step is enabled
+DEFAULT_FROM_EMAIL = 'annoyedflake@gmail.com'

@@ -10,10 +10,10 @@ const HomePage = () => {
       style={{ backgroundImage: 'url("https://i.pinimg.com/736x/0f/64/8a/0f648a264b8179e13a7c6ff540da4e4f.jpg")' }}
     >
       {/* Hero Section */}
-      <section className="h-screen relative flex items-center justify-center bg-black bg-opacity-60">
+      <section className="h-[50vh] md:h-[60vh] relative flex items-center justify-center bg-black bg-opacity-60">
         <div className="text-center px-8 md:px-16">
           <h2 className="text-5xl font-extrabold mb-4 text-white drop-shadow-lg">Delicious Recipes Await You</h2>
-          <p className="text-xl mb-8 text-gray-200">Explore thousands of recipes from different cuisines</p>
+          <p className="text-xl mb-4 text-gray-200">Explore thousands of recipes from different cuisines</p>
           <button
             onClick={() => navigate("/recipes/1")}
             className="bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-6 rounded-lg transition duration-300 ease-in-out transform hover:scale-105"
@@ -25,13 +25,12 @@ const HomePage = () => {
 
       {/* Why Choose Us Section */}
       <section
-        className="py-20 bg-cover bg-center relative"
-
+        className="py-8 bg-cover bg-center relative"
       >
         <div className="absolute inset-0 bg-black bg-opacity-50"></div>
         <div className="relative z-10 p-8">
-          <h3 className="text-4xl font-bold mb-12 text-center text-white">Why Choose Us?</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <h3 className="text-4xl font-bold mb-6 text-center text-white">Why Choose Us?</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-gray-800 p-8 rounded-lg shadow-lg hover:bg-indigo-600 transition duration-300">
               <div className="flex items-center justify-center mb-4">
                 <svg className="h-12 w-12 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -63,30 +62,7 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* Bonus Content Section */}
-      <section className="py-20 bg-gradient-to-r from-gray-900 via-gray-800 to-black">
-        <div className="text-center">
-          <h3 className="text-3xl font-bold mb-6 text-white">Join Our Community</h3>
-          <p className="text-lg text-gray-300 mb-8">Be part of a growing community of food lovers and share your own recipes, tips, and tricks with others.</p>
-          <button
-            onClick={() => navigate("/submit-recipe")}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-6 rounded-lg transition duration-300 ease-in-out transform hover:scale-105"
-          >
-            Submit Your Recipe
-          </button>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="bg-gradient-to-r from-gray-800 via-gray-900 to-black text-gray-400 py-6">
-        <div className="container mx-auto text-center">
-          <p>&copy; 2024 RecipeShare. All rights reserved.</p>
-          <div className="flex justify-center space-x-4 mt-4">
-            <a href="#" className="hover:text-gray-200">Privacy Policy</a>
-            <a href="#" className="hover:text-gray-200">Terms of Service</a>
-          </div>
-        </div>
-      </footer>
+     
     </div>
   );
 };

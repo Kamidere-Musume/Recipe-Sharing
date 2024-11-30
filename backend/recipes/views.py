@@ -8,13 +8,12 @@ from .recommendation import RecipeRecommender
 from rest_framework.response import Response
 from bson import ObjectId
 import json
+from django.views.decorators.csrf import csrf_exempt
 
 mongo_uri = "mongodb://localhost:27017"
 db_name = "tekks"
 collection_name = "tekks"
-
 recommender = RecipeRecommender(mongo_uri, db_name, collection_name)
-
 client = MongoClient(mongo_uri)
 db = client[db_name]
 tekks_collection = db[collection_name]
@@ -41,42 +40,6 @@ def tekks_list(request):
         total_tekks = tekks_collection.count_documents({
             "title": {"$regex": search_query, "$options": "i"} if search_query else {}
         })  # Count documents based on search query
-
-        # Convert data to JSON-serializable format
-        tekks_data = [
-            {
-                "id": str(tekk['_id']),  # ObjectId to string
-                "title": tekk.get('title', ''),
-                "url": tekk.get('url', ''),
-                "ingredients": tekk.get('ingredients', []),
-                "instructions": tekk.get('instructions', [])
-            }
-            for tekk in tekks
-        ]
-
-        # Pagination metadata
-        total_pages = ceil(total_tekks / limit)
-        metadata = {
-            "current_page": page,
-            "total_pages": total_pages,
-            "total_tekks": total_tekks,
-            "has_next": page < total_pages,
-            "has_previous": page > 1,
-        }
-
-        return Response({"metadata": metadata, "tekks": tekks_data})
-
-    except Exception as e:
-        return Response({"error": str(e)}, status=400)
-
-    try:
-        page = int(request.query_params.get('page', 1))  # Default to page 1
-        limit = 12  # Items per page
-        skip = (page - 1) * limit
-
-        # Fetch paginated data
-        tekks = list(tekks_collection.find().skip(skip).limit(limit))
-        total_tekks = tekks_collection.count_documents({})  # Total documents
 
         # Convert data to JSON-serializable format
         tekks_data = [
@@ -251,12 +214,12 @@ def get_recipe_comments(request, recipe_id):
 @api_view(['GET'])
 def get_average_rating(request, recipe_id):
     try:
-        # Ensure recipe_id is a valid ObjectId
+        # Ensure `recipe_id` is a valid ObjectId
         recipe_id_object = ObjectId(recipe_id)
     except Exception as e:
         return JsonResponse({"success": False, "message": "Invalid recipe ID."}, status=400)
 
-    # Find all users who have rated the recipe and calculate average rating
+    # Find all users who have rated the recipe and calculate the average rating
     users_with_ratings = users_collection.aggregate([
         {"$unwind": "$comments"},  # Flatten the comments array
         {"$match": {"comments.recipe_id": recipe_id_object}},  # Match by recipe_id
@@ -267,9 +230,8 @@ def get_average_rating(request, recipe_id):
     ])
 
     average_rating_result = list(users_with_ratings)
-    
+
     if average_rating_result:
         return JsonResponse({"success": True, "average_rating": average_rating_result[0]["average_rating"]})
     else:
-        return JsonResponse({"success": True, "average_rating": 0})  # If no ratings are found, return 0
-    
+        return JsonResponse({"success": True, "average_rating": 0}) 
