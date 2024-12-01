@@ -100,45 +100,7 @@ const handleSearch = debounce((query) => {
           className="w-1/2 p-3 rounded-lg text-lg text-white bg-transparent placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-600 shadow-md"
         />
       </div>
-
-      {/* Search Results Section */}
-      {searchQuery && (
-        <div className="mb-8 px-6">
-          <h3 className="text-2xl font-semibold text-white mb-4">Search Results</h3>
-          {filteredTekks.length === 0 ? (
-            <p className="text-gray-200">No recipes found matching your search.</p>
-          ) : (
-            <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
-              {filteredTekks.map((tekk) => (
-                <li
-                  key={tekk.id}
-                  className="hover:cursor-pointer hover:-translate-y-1 transition-transform transform"
-                  onClick={() =>
-                    navigate("/recipe-details", {
-                      state: { tekk, image: tekk.url || defaultImage, page: pages },
-                    })
-                  }
-                >
-                  <div className="relative group rounded-lg overflow-hidden shadow-lg">
-                    <img
-                      src={tekk.url || defaultImage}
-                      alt={tekk.title}
-                      className="w-full h-80 object-cover rounded-lg transition-all duration-300 group-hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
-                      <p className="text-white text-lg font-medium">Click to View Recipe</p>
-                    </div>
-                  </div>
-                  <h2 className="text-xl font-semibold text-center text-white mt-3 truncate">
-                    {tekk.title}
-                  </h2>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
-
+      
       {/* Recipes Grid */}
       <div className="p-6">
         {loading ? (

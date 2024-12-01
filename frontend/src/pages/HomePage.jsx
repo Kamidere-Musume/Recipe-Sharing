@@ -1,14 +1,33 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from "react";
 
 const HomePage = () => {
   const navigate = useNavigate();
+  const [tekks, setTekks] = useState([]); 
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setLoading(true);
+    fetch(`http://127.0.0.1:8000/api/tekks`)
+      .then((response) => response.json())
+      .then((data) => {
+        if (Array.isArray(data.tekks)) {
+          setTekks(data.tekks);
+        } else {
+          setError("Unexpected data format");
+        }
+      })
+      .catch((err) => {
+        setError(`Error: ${err.message}`);
+        console.error("Error fetching tekks:", err);
+      })
+      .finally(() => setLoading(false));
+  }, [])
 
   return (
-    <div
-      className="bg-cover bg-center text-white min-h-screen"
-      style={{ backgroundImage: 'url("https://i.pinimg.com/736x/0f/64/8a/0f648a264b8179e13a7c6ff540da4e4f.jpg")' }}
-    >
+    <div className="bg-gradient-to-r from-gray-900 via-gray-800 to-black min-h-screen text-white">
       {/* Hero Section */}
       <section className="h-[50vh] md:h-[60vh] relative flex items-center justify-center bg-black bg-opacity-60">
         <div className="text-center px-8 md:px-16">
@@ -23,10 +42,42 @@ const HomePage = () => {
         </div>
       </section>
 
+      {/* Recipes Grid */}
+      <div className="p-6">
+        <h1 className="text-3xl font-bold text-center text-white mb-6">Featured Recipes</h1>
+        <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
+          {tekks.slice(0,3).map((tekk) => (
+            <li
+              key={tekk.id}
+              className="hover:cursor-pointer hover:-translate-y-1 transition-transform transform"
+            >
+              <div className="relative group rounded-lg overflow-hidden shadow-lg">
+                <img
+                  src={tekk.url || defaultImage}
+                  alt={tekk.title}
+                  className="w-full h-80 object-cover rounded-lg transition-all duration-300 group-hover:scale-105"
+                />
+                <div
+                  className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg"
+                  onClick={() =>
+                    navigate("/recipe-details", {
+                      state: { tekk, image: tekk.url || defaultImage, page: 1 },
+                    })
+                  }
+                >
+                  <p className="text-white text-lg font-medium">Click to View Recipe</p>
+                </div>
+              </div>
+              <h2 className="text-xl font-semibold text-center text-white mt-3 truncate">
+                {tekk.title}
+              </h2>
+            </li>
+          ))}
+        </ul>
+      </div>
+
       {/* Why Choose Us Section */}
-      <section
-        className="py-8 bg-cover bg-center relative"
-      >
+      <section className="py-8 bg-cover bg-center relative">
         <div className="absolute inset-0 bg-black bg-opacity-50"></div>
         <div className="relative z-10 p-8">
           <h3 className="text-4xl font-bold mb-6 text-center text-white">Why Choose Us?</h3>
@@ -61,8 +112,6 @@ const HomePage = () => {
           </div>
         </div>
       </section>
-
-     
     </div>
   );
 };

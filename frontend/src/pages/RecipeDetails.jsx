@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 function RecipeDetails() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { tekk, image, page } = location.state || {}; // relatedRecipes is no longer passed here
+  const { tekk, image, page, difficulty_rating } = location.state || {};
+  console.log(location.state) 
   const user = JSON.parse(localStorage.getItem("user"));
   const [recommendedRecipes, setRecommendedRecipes] = useState({});
   const [loadingRecommendations, setLoadingRecommendations] = useState(true);
@@ -13,7 +14,8 @@ function RecipeDetails() {
   const [rating, setRating] = useState(0); // For storing user rating
   const [newComment, setNewComment] = useState(""); // For user comment input
   const [comments, setComments] = useState([]); // For storing comments
-  const [averageRating, setAverageRating] = useState(null); // For storing average rating
+  const [averageRating, setAverageRating] = useState(null); 
+  
   const fetchRecommendations = async (currentRecipeId) => {
     try {
       setLoadingRecommendations(true);
@@ -239,11 +241,11 @@ function RecipeDetails() {
             alt={recipe.title}
             className="w-full h-48 object-cover rounded-lg mb-4"
             onClick={() => {
-              // Pass the current page number when navigating
               navigate("/recipe-details", { 
                 state: { 
                   tekk: recipe, 
                   image: recipe.url, 
+                  difficulty_rating: recipe.difficulty_rating,
                   page: page  // Pass the current page number
                 }
               });
@@ -261,7 +263,10 @@ function RecipeDetails() {
   </div>
 
     </div>
-
+    {/* Difficulty rating display */}
+      <div className="difficulty-rating">
+        <strong>Difficulty Rating:</strong> {tekk.difficulty_rating}
+      </div>
 
     <div className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">Rate This Recipe</h2>
